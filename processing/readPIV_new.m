@@ -2,7 +2,7 @@ addpath('..\utils\readimx-v2.1.9-win64\readimx-v2.1.9-win64\')
 
 %% Parameters
 % Set the grid spacing (adjust as needed)
-h = 0.0572102e-3;
+h = 0.0572102;
 % 5-point central difference kernel (for derivatives in x)
 kernel = [-1, 8, 0, -8, 1] / (12 * h);
 
@@ -64,6 +64,7 @@ finalW(mask1) = W1(mask1);
 finalW(mask2) = W2(mask2);
 
 %% Subtract Mean Flow from finalU (only for values >= 0.05)
+
 mask = finalU >= 0.05;
 finalU(mask) = finalU(mask) - mean(finalU(mask), 'all');
 
@@ -114,7 +115,7 @@ end
 lambda2_approx = dU_dx.^2 + dV_dx .* dU_dy;
 
 %% Create Binary Mask for Regions Where Approximate lambda_2 is Negative
-negativeRegions = lambda2_approx < -5000;
+negativeRegions = lambda2_approx < 0;
 
 %% Visualization
 % Quiver plot of the in-plane (U,V) velocity field
@@ -157,7 +158,7 @@ figure;
 imagesc(lambda2_approx);
 colormap('jet');
 colorbar;
-clim([-3e4, 11e4])
+%clim([-3e4, 11e4])
 title('Approximate \lambda_2 Field (2D)');
 
 % Binary mask for negative approximate lambda_2 regions
@@ -182,7 +183,7 @@ lambda2_approx = dU_dx.^2 + dV_dx .* dU_dy;
 
 %% Create a Binary Mask of Negative Regions
 % Use your chosen threshold; here we use -10000.
-negativeRegions = lambda2_approx < -8000;
+negativeRegions = lambda2_approx < -0.007;
 
 %% Identify Connected Components and Filter by Size
 % Find connected components (using 8-connectivity)
@@ -212,6 +213,13 @@ xlabel('X grid index');
 ylabel('Y grid index');
 
 %% ---- Try to superimpose red circles on the detected vortices ----
+
+% (Optional) Clip super outlier vectors in the velocity field
+% mag = sqrt(finalU.^2 + finalV.^2);  % Compute magnitudes
+% threshold = 0.05;  % Set threshold (adjust as necessary)
+% idx = mag > threshold;  % Find indices where magnitude exceeds threshold
+% finalU(idx) = threshold * finalU(idx) ./ mag(idx);
+% finalV(idx) = threshold * finalV(idx) ./ mag(idx);
 
 % Find the Centers of Valid Negative Regions
 % Extract region properties including the centroid
