@@ -6,6 +6,7 @@ imshow(image);
 %%
 I = rgb2gray(image);
 I = imadjust(I, stretchlim(I), []);
+
 %%
 % Load the image
 filePath = 'calibrationData\G0051138.JPG';
@@ -24,8 +25,9 @@ realWorldPoints = [0, 0; 1000, 0; 1000, 500; 0, 500]; % Adjust scale if necessar
 tform = fitgeotrans([x, y], realWorldPoints, 'projective');
 % Apply the transformation to warp the image
 rectifiedImage = imwarp(I, tform);
-% Display the original and rectified images for comparison
+%% Display the original and rectified images for comparison
 figure;
+colormap('gray');
 subplot(1,2,1);
 imshow(I);
 title('Original Image');
