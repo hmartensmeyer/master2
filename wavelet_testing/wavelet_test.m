@@ -1,6 +1,6 @@
 %% Kun development. Må gjøre om denne til en funksjon tenker jeg.
 
-data = load ('..\data\filtered_gray_5000t_indices.mat');
+data = load ('..\data\SZ_VFD10p5Hz_TimeResolved_Run1_720p.mat');
 %%
 data_frame = data.filteredFramesGray;
 times = data.filteredTimeindeces;
@@ -22,21 +22,28 @@ end
 
 disp('Converted filteredFramesGray to 3D matrix.');
 
+%% MEAN SUBTRACTION TO REMOVE THE BLACK CEILING PANELS
+% Compute mean frame across time. The output is a double array.
+mean_frame = mean(eta, 3);  % 1080x1920 (double)
+
+% Convert eta to double, then subtract the mean frame.
+eta_meansub = double(eta) - mean_frame;
+
 %%
 
-t_index = 45;
-snapshot = eta(:, :, t_index);
+t_index = 20;
+snapshot = eta_meansub(:, :, t_index);
 
 % Perform 2D continuous wavelet transform with the Mexican hat wavelet
-scales = 1:20;  % Adjust scale range based on feature size
+scales = 1:15;  % Adjust scale range based on feature size
 cwt_result = cwtft2(snapshot, 'Wavelet', 'mexh', 'Scales', scales);
 
 % Extract wavelet coefficients at a specific scale
-selected_scale = 15;  % Example scale index
+selected_scale = 8;  % Example scale index
 wavelet_coefficients = cwt_result.cfs(:,:,selected_scale);
 
 % Define the threshold
-W_thr = 90;
+W_thr = 20;
 
 % Create a mask for regions where W > W_thr
 mask = wavelet_coefficients > W_thr;
@@ -58,8 +65,8 @@ eccentric_regions = ismember(labelmatrix(connected_components), ...
     find([region_props.Eccentricity] < eccentricity_threshold  & [region_props.Solidity] > solidity_threshold));
 
 % Apply the new mask to the wavelet coefficients
-%filtered_by_eccentricity = wavelet_coefficients .* eccentric_regions;
-filtered_by_eccentricity = 1 - eccentric_regions; %binary version
+filtered_by_eccentricity = wavelet_coefficients .* eccentric_regions;
+%filtered_by_eccentricity = 1 - eccentric_regions; %binary version
 
 % Plot original surface elevation
 hfig = figure('Name', 'Wavelet Analysis', Colormap=gray);
@@ -68,17 +75,17 @@ t = tiledlayout(2, 2, "TileSpacing","compact","Padding","compact");
 
 % Original surface elevation
 %subplot(2, 2, 1);
-nexttile;
+ax1=nexttile;
 imagesc(snapshot);
 title(sprintf('Grayscale ceiling at t = %d', times(t_index)));
 xlabel('X');
 ylabel('Y');
-%set(gca, 'XTickLabel', [], 'YTickLabel', []);
+set(gca, 'XTickLabel', [], 'YTickLabel', []);
 colorbar;
 
 % Wavelet coefficients
 %subplot(2, 2, 2);
-nexttile;
+ax2=nexttile;
 imagesc(wavelet_coefficients);
 title(sprintf('Wavelet coefficients (Scale %d)', scales(selected_scale)));
 xlabel('X');
@@ -88,7 +95,7 @@ colorbar;
 
 % Visualization of filtered coefficients
 %subplot(2, 2, 3);
-nexttile;
+ax3=nexttile;
 imagesc(filtered_coefficients);
 title('Filtered wavelet coefficients ($W > W_{thr}$)');
 xlabel('X');
@@ -98,7 +105,7 @@ colorbar;
 
 % Visualization of the filtered coefficients
 %subplot(2, 2, 4);
-nexttile;
+ax4=nexttile;
 imagesc(filtered_by_eccentricity);
 title('Filtered (Eccentricity $<$ 0.85)');
 xlabel('X');
@@ -163,6 +170,53 @@ set(hfig, 'PaperPositionMode', 'Auto', 'PaperUnits', 'centimeters', 'PaperSize',
 % xlabel('X Coordinate');
 % ylabel('Y Coordinate');
 % colorbar;
+
+%% Save figures
+
+% Ensure the "data" folder exists
+if ~exist('output', 'dir')
+    mkdir('output');
+end
+
+% -------------------------
+% Plot 1: Grayscale ceiling
+% -------------------------
+hfig1 = figure('Name', 'Grayscale Ceiling');
+imagesc(snapshot);
+colormap('gray');
+set(gca, 'XTickLabel', [], 'YTickLabel', []); % Hide tick labels if desired
+% Save figure 1 as PDF
+print(hfig1, fullfile('output','grayscale_ceiling.pdf'), '-dpdf', '-bestfit');
+
+% -------------------------
+% Plot 2: Wavelet coefficients
+% -------------------------
+hfig2 = figure('Name', 'Wavelet Coefficients');
+imagesc(wavelet_coefficients);
+colormap('gray');
+set(gca, 'XTickLabel', [], 'YTickLabel', []); % Hide tick labels if desired
+% Save figure 2 as PDF
+print(hfig2, fullfile('output','wavelet_coefficients.pdf'), '-dpdf', '-bestfit');
+
+% -------------------------
+% Plot 3: Filtered wavelet coefficients
+% -------------------------
+hfig3 = figure('Name', 'Filtered Wavelet Coefficients');
+imagesc(filtered_coefficients);
+colormap('gray');
+set(gca, 'XTickLabel', [], 'YTickLabel', []);
+% Save figure 3 as PDF
+print(hfig3, fullfile('output','filtered_coefficients.pdf'), '-dpdf', '-bestfit');
+
+% -------------------------
+% Plot 4: Filtered by eccentricity
+% -------------------------
+hfig4 = figure('Name', 'Filtered by Eccentricity');
+imagesc(filtered_by_eccentricity);
+colormap('gray');
+set(gca, 'XTickLabel', [], 'YTickLabel', []);
+% Save figure 4 as PDF
+print(hfig4, fullfile('output','filtered_by_eccentricity.pdf'), '-dpdf', '-bestfit');
 
 
 %% Test for time series
