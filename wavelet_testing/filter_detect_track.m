@@ -29,7 +29,7 @@ eta_meansub = double(eta) - mean_frame;
 %% II. Wavelet Analysis and Filtering
 % Parameters for wavelet filtering
 scales = 1:15;
-selected_scale = 6;
+selected_scale = 8;
 W_thr = 40;
 eccentricity_threshold = 0.85;
 solidity_threshold = 0.6;
@@ -45,7 +45,7 @@ baseYShift = 35;  % Base offset per time unit
 radiusFactor = 1.1; % Adjusts the factor for allowed distance from predicted position will be baseYShift*radiusFactor
 maxSearchTime = 20;
 
-for t_index = 8:58
+for t_index = 8:108
     currentTime = times(t_index);
     disp(currentTime)
     snapshot = eta_meansub(:, :, t_index);
@@ -171,6 +171,29 @@ for t_index = 8:58
     drawnow;
 
 end
+
+%% Plot detected tracks after processing
+figure; 
+imshow(mean_frame, []); 
+colormap gray; 
+hold on;
+for k = 1:length(tracks)
+    if trackInfo(k).lifetime > lifetimeThreshold
+        centroids = tracks(k).centroids;
+        % Plot the trajectory if there are multiple points
+        if size(centroids,1) > 1
+            plot(centroids(:,1), centroids(:,2), '-o', 'LineWidth', 1, 'MarkerSize', 6);
+        else
+            plot(centroids(1), centroids(2), 'o', 'LineWidth', 1, 'MarkerSize', 6);
+        end
+        % Label the track at the final detection
+        %text(centroids(end,1)+5, centroids(end,2), num2str(tracks(k).id), ...
+        %     'Color', 'yellow', 'FontSize', 12, 'FontWeight', 'bold');
+    end
+end
+title('Detected Tracks');
+hold off;
+
 
 %% V. Return Tracks with Lifetime Above a Threshold
 lifetimeThreshold = 5;  % Adjust as needed (in number of frames)
